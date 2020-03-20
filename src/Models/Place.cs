@@ -36,6 +36,10 @@ namespace PlacePopularity.Models
         /// The url to the icon for this place
         /// </summary>
         public string IconUrl { get; set; }
+
+        public string Address { get; set; }
+
+        public PopularityInfo Popularity { get; set; }
         #endregion
     }
 }

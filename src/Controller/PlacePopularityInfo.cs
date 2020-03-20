@@ -1,4 +1,5 @@
-﻿using PlacePopularity.Exceptions;
+﻿using GeoCoordinatePortable;
+using PlacePopularity.Exceptions;
 using PlacePopularity.Logic;
 using PlacePopularity.Models;
 using System;
@@ -14,55 +15,104 @@ namespace PlacePopularity.Controller
         private static PlacePopularityInfo _instance;
 
         private DateTime? _lastRequest = null;
+        private int _lastRadius;
+        private Location _lastLocation;
+
+        private List<Place> _setOfNearbyPlaces;
+
+        private int _failureRadius = 30;
+        #endregion
+
+        #region enum
+        private enum RefreshType
+        {
+            complete,
+            update,
+            partlyNew
+        }
         #endregion
 
         #region constructor
-        private PlacePopularityInfo() { }
+        private PlacePopularityInfo()
+        {
+            _setOfNearbyPlaces = new List<Place>();
+        }
         #endregion
 
-        #region publics 
-        public PopularityInfo GetPopularity(string placeId)
-        {
-            if (string.IsNullOrEmpty(_apiKey))
-                throw new ApiKeyNotSetException("Set the API key before using the library.");
-            if (_lastRequest?.Hour == DateTime.Now.Hour)
-                throw new MultipleRequestInHour("The live update is only available once a hour.");
-
-            try
-            {
-                PopularityInfo info = HandlePlaceDetails.GetPopularity(_apiKey, placeId);
-
-                // disable for testing purposes
-                //if (info != null)
-                //    _lastRequest = DateTime.Now;
-
-                return info;
-            }
-            catch (Exception e)
-            {
-                var msg = e.Message;
-                return null;
-            }
-        }
-
+        #region publics
         public List<Place> GetNearbyPlaces(Location location, int radius)
         {
             if (radius == 0)
                 throw new ArgumentException("Pleas specify a radius.");
             if (radius >= 25000)
                 throw new ArgumentException("Please use a smaller radius.");
+            if (location == null)
+                throw new ArgumentException("Specify the current location of the user.");
 
             try
             {
-                return NearbyPlaces.GetNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.grocery_or_supermarket);
+                if (_lastRequest != null)
+                {
+                    if (LocationIsInsideFailureRadius(location))
+                    {
+                        if (_lastRequest?.Hour == DateTime.Now.Hour)
+                        {
+                            return SetOfNearbyPlaces;
+                        }
+                    }
+                    else
+                    {
+                        if (SetOfNearbyPlaces != null)
+                        {
+                            SetOfNearbyPlaces = LoadPlaces(location, radius, RefreshType.partlyNew);
+                        }
+                        else
+                        {
+                            SetOfNearbyPlaces = LoadPlaces(location, radius, RefreshType.complete);
+                        }
+                    }
+                }
+
+                SetOfNearbyPlaces = LoadPlaces(location, radius, RefreshType.complete);
             }
-            catch { return null; }
+            catch { }
+
+            return SetOfNearbyPlaces;
 
         }
         #endregion
 
         #region privates
-        #endregion
+
+        private List<Place> LoadPlaces(Location location, int radius, RefreshType refreshType)
+        {
+            _lastRequest = DateTime.Now;
+            _lastLocation = location;
+            _lastRadius = radius;
+
+            switch (refreshType)
+            {
+                case RefreshType.complete:
+                    return NearbyPlaces.GetNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.grocery_or_supermarket);
+                case RefreshType.update:
+                    return NearbyPlaces.UpdateNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.grocery_or_supermarket, SetOfNearbyPlaces);
+                case RefreshType.partlyNew:
+                    return NearbyPlaces.UpdateNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.grocery_or_supermarket, SetOfNearbyPlaces);
+                default:
+                    return null;
+            }
+        }
+
+        private bool LocationIsInsideFailureRadius(Location location)
+        {
+            var userCoordinate = new GeoCoordinate(location.lat, location.lng);
+            var lastLocation = new GeoCoordinate(_lastLocation.lat, _lastLocation.lng);
+
+            if (Math.Round(userCoordinate.GetDistanceTo(lastLocation), 0) <= _failureRadius)
+                return true;
+            return false;
+        }
+        #endregion 
 
         #region properties
         public static PlacePopularityInfo Instance
@@ -73,6 +123,12 @@ namespace PlacePopularity.Controller
         public string ApiKey
         {
             set => _apiKey = value;
+        }
+
+        public List<Place> SetOfNearbyPlaces
+        {
+            get => _setOfNearbyPlaces;
+            set => _setOfNearbyPlaces = value;
         }
         #endregion
     }

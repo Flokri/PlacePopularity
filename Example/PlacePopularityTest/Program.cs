@@ -10,7 +10,7 @@ namespace PlacePopularityTest
     {
         static void Main(string[] args)
         {
-            string apiKey = "<API Key>";
+            string apiKey = "<Api Key>";
 
             Location currentLocation = new Location()
             {
@@ -31,28 +31,27 @@ namespace PlacePopularityTest
             string output = "";
             foreach (var item in ascendingDistance)
             {
-                PopularityInfo info = PlacePopularityInfo.Instance.GetPopularity(item.PlaceId);
-
-                if (info.CurrentPopularity == -1)
+                if (item.Popularity.CurrentPopularity == -1)
                 {
-                    output += $"Store:\t{info.Name}\n\t" +
+                    output += $"Store:\t{item.Name}\n\t" +
                         $"No live data available!\n\t" +
                         $"Average Popularity at this time: " +
-                        $"{info.OpeningHours.FirstOrDefault(h => h.DayOfWeek.Equals(DateTime.Now.DayOfWeek.ToString())).PopularityForHour.FirstOrDefault(h => h.Hour == DateTime.Now.Hour).Popularity}\n" +
+                        $"{item.Popularity.OpeningHours.FirstOrDefault(h => h.DayOfWeek.Equals(DateTime.Now.DayOfWeek.ToString())).PopularityForHour.FirstOrDefault(h => h.Hour == DateTime.Now.Hour).Popularity}\n" +
                         $"-------------------------------------------------------------------------------------------------\n";
                 }
                 else
                 {
                     output += $"Store:\t{item.Name}\n\t" +
-                        $"Current popularity: {info.CurrentPopularity}\n\t" +
-                        $"Usally waiting time at current time: {info.UsuallyWaitingTime}\n\t" +
-                        $"Current popularity is {(info.CurrentPopularity * 100) / (info.OpeningHours.FirstOrDefault(h => h.DayOfWeek.Equals(DateTime.Now.DayOfWeek.ToString())).PopularityForHour.FirstOrDefault(h => h.Hour == DateTime.Now.Hour).Popularity)}% of the average for this day and time\n" +
+                        $"Current popularity: {item.Popularity.CurrentPopularity}\n\t" +
+                        $"Usally waiting time at current time: {item.Popularity.UsuallyWaitingTime}\n\t" +
+                        $"Current popularity is {(item.Popularity.CurrentPopularity * 100) / (item.Popularity.OpeningHours.FirstOrDefault(h => h.DayOfWeek.Equals(DateTime.Now.DayOfWeek.ToString())).PopularityForHour.FirstOrDefault(h => h.Hour == DateTime.Now.Hour).Popularity)}% of the average for this day and time\n" +
                         $"-------------------------------------------------------------------------------------------------\n";
                     ;
                 }
 
                 output += "\n";
             }
+
 
             Console.WriteLine(output);
             Console.ReadKey();

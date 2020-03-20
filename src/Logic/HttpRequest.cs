@@ -16,7 +16,26 @@ namespace PlacePopularity.Logic
                                   "Chrome/54.0.2840.98 Safari/537.36";
         #endregion 
 
-        public static RootObject GetPlaceDetails(string placeDetailUrl)
+        public static DetailPlaceJson GetPlaceDetails(string placeDetailUrl)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<DetailPlaceJson>(SimpleRequest(placeDetailUrl));
+            }
+            catch { return null; }
+        }
+
+        public static PlaceJson GetNearbyPlaceResponse(string searchUrl)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<PlaceJson>(SimpleRequest(searchUrl));
+            }
+            catch { return null; }
+        }
+
+
+        private static string SimpleRequest(string url)
         {
             try
             {
@@ -25,7 +44,7 @@ namespace PlacePopularity.Logic
                 string password = "pass";
                 string encoded = System.Convert.ToBase64String(System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(username + ":" + password));
 
-                WebRequest request = WebRequest.Create(placeDetailUrl);
+                WebRequest request = WebRequest.Create(url);
                 request.Headers.Add("Authorization", "Basic " + encoded);
                 using (WebResponse response = request.GetResponse())
                 {
@@ -34,8 +53,7 @@ namespace PlacePopularity.Logic
                     {
                         using (StreamReader sr = new StreamReader(data))
                         {
-                            string responseFromServer = sr.ReadToEnd();
-                            return JsonConvert.DeserializeObject<RootObject>(responseFromServer);
+                            return sr.ReadToEnd();
                         }
                     }
                 }

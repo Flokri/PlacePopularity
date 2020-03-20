@@ -38,7 +38,26 @@ namespace PlacePopularity.Controller
 
                 return info;
             }
+            catch (Exception e)
+            {
+                var msg = e.Message;
+                return null;
+            }
+        }
+
+        public List<Place> GetNearbyPlaces(Location location, int radius)
+        {
+            if (radius == 0)
+                throw new ArgumentException("Pleas specify a radius.");
+            if (radius >= 25000)
+                throw new ArgumentException("Please use a smaller radius.");
+
+            try
+            {
+                return NearbyPlaces.GetNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.grocery_or_supermarket);
+            }
             catch { return null; }
+
         }
         #endregion
 

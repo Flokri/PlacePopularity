@@ -1,6 +1,7 @@
 ﻿using PlacePopularity.Controller;
 using PlacePopularity.Models;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace PlacePopularityTest
@@ -9,31 +10,51 @@ namespace PlacePopularityTest
     {
         static void Main(string[] args)
         {
-            string apiKey = "<Enter API Key>";
-            string placeId = "<Enter Place Id>";
+            string apiKey = "<API Key>";
+
+            Location currentLocation = new Location()
+            {
+                lat = 0.0,
+                lng = 0.0
+            };
+
+            int radius = 500; // radius of current Location in meter
 
             PlacePopularityInfo.Instance.ApiKey = apiKey;
-            PopularityInfo info = PlacePopularityInfo.Instance.GetPopularity(placeId);
 
-            if (info == null)
+            List<Place> places = PlacePopularityInfo.Instance.GetNearbyPlaces(currentLocation, radius);
+
+            // sort the list by ascending distance
+            List<Place> ascendingDistance = places.OrderBy(o => o.Distance).ToList();
+
+            // get the popularity index of the nearby places
+            string output = "";
+            foreach (var item in ascendingDistance)
             {
-                Console.WriteLine();
-                Console.WriteLine("The api does get an error. Retry later");
+                PopularityInfo info = PlacePopularityInfo.Instance.GetPopularity(item.PlaceId);
+
+                if (info.CurrentPopularity == -1)
+                {
+                    output += $"Store:\t{info.Name}\n\t" +
+                        $"No live data available!\n\t" +
+                        $"Average Popularity at this time: " +
+                        $"{info.OpeningHours.FirstOrDefault(h => h.DayOfWeek.Equals(DateTime.Now.DayOfWeek.ToString())).PopularityForHour.FirstOrDefault(h => h.Hour == DateTime.Now.Hour).Popularity}\n" +
+                        $"-------------------------------------------------------------------------------------------------\n";
+                }
+                else
+                {
+                    output += $"Store:\t{item.Name}\n\t" +
+                        $"Current popularity: {info.CurrentPopularity}\n\t" +
+                        $"Usally waiting time at current time: {info.UsuallyWaitingTime}\n\t" +
+                        $"Current popularity is {(info.CurrentPopularity * 100) / (info.OpeningHours.FirstOrDefault(h => h.DayOfWeek.Equals(DateTime.Now.DayOfWeek.ToString())).PopularityForHour.FirstOrDefault(h => h.Hour == DateTime.Now.Hour).Popularity)}% of the average for this day and time\n" +
+                        $"-------------------------------------------------------------------------------------------------\n";
+                    ;
+                }
+
+                output += "\n";
             }
 
-            // display the result to the user
-            Console.WriteLine("The current popularity for the enterd place:");
-            Console.WriteLine($"Name: {info.Name}");
-            Console.WriteLine($"Current Popularity: {info.CurrentPopularity}");
-            Console.WriteLine($"Current Popularity Status: {info.CurrentPopularityStatus}");
-            Console.WriteLine($"Average Time Spent (per Person): {info.AverageTimeSpent}");
-            Console.WriteLine($"Usually Waiting Time: {info.UsuallyWaitingTime}");
-            Console.WriteLine($"Place Rating: {info.Rating}");
-            Console.WriteLine($"Total Ratings: {info.TotalRatings}");
-            Console.WriteLine($"Place Categories: {string.Join(" & ", info.Types)}");
-            Console.WriteLine($"Is Open: {info.IsOpen}");
-            Console.WriteLine($"Opening Hours:\n\t {string.Join("\n\t", info.OpeningHours.Select(x => x.DayOfWeek + ": " + x.OpensAt.TimeOfDay + " - " + x.CloseingAt.TimeOfDay).ToArray())}");
-
+            Console.WriteLine(output);
             Console.ReadKey();
         }
     }

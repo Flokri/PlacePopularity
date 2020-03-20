@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace PlacePopularity.Logic
 {
@@ -28,7 +29,7 @@ namespace PlacePopularity.Logic
         #region privates
         private static PopularityInfo ConstructPlaceUrl(string apiKey, string placeId)
         {
-            RootObject serverResponse = HttpRequest.GetPlaceDetails(string.Format(DETAIL_URL, placeId, apiKey));
+            DetailPlaceJson serverResponse = HttpRequest.GetPlaceDetails(string.Format(DETAIL_URL, placeId, apiKey));
 
             if (serverResponse == null)
                 throw new NullReferenceException("Could not load the details for the specified place.");
@@ -36,7 +37,7 @@ namespace PlacePopularity.Logic
             return GetPopularityTimesByDetails(serverResponse.result);
         }
 
-        private static PopularityInfo GetPopularityTimesByDetails(Result details)
+        private static PopularityInfo GetPopularityTimesByDetails(DetailResult details)
         {
             // get the detail address from the specified place, if the formatted address is null or empty use the vicinity
             string address = !string.IsNullOrEmpty(details.formatted_address) ? details.formatted_address : details.vicinity;
@@ -72,21 +73,36 @@ namespace PlacePopularity.Logic
             // get the important nodes from the json object
             // if google changes the api this HAS TO BE MODIFIED TO
             var jsonData = jsonResponse["d"];
-            var jsonInfo = jsonData[0][1][0][14];
 
-            return new PopularityInfo
+            bool provideLiveData = false;
+
+            JToken jsonInfo;
+            try
+            {
+                jsonInfo = jsonData[0][1][0][14];
+                provideLiveData = true;
+            }
+            catch (Exception e)
+            {
+                // this place does not provide live data
+                jsonInfo = jsonData[0][1][1][14];
+            }
+
+            var popularityInfo = new PopularityInfo
             {
                 PlaceId = placeId,
                 Name = name,
                 Rating = GetJsonValue<double>(jsonInfo, new List<int> { 4, 7 }),
                 TotalRatings = GetJsonValue<int>(jsonInfo, new List<int> { 4, 8 }),
                 Types = GetJsonValue<List<string>>(jsonInfo, new List<int> { 13 }),
-                CurrentPopularity = GetJsonValue<int?>(jsonInfo, new List<int> { 84, 7, 1 }) ?? -1,
-                CurrentPopularityStatus = GetJsonValue<string>(jsonInfo, new List<int> { 84, 6 }),
+                CurrentPopularity = provideLiveData ? GetJsonValue<int?>(jsonInfo, new List<int> { 84, 7, 1 }) ?? -1 : -1,
+                CurrentPopularityStatus = provideLiveData ? GetJsonValue<string>(jsonInfo, new List<int> { 84, 6 }) : "No live data available",
                 AverageTimeSpent = GetJsonValue<string>(jsonInfo, new List<int> { 117, 0 }),
                 UsuallyWaitingTime = GetUsuallyWaitingTime(jsonInfo),
                 OpeningHours = GetOpeningHours(jsonInfo)
             };
+
+            return popularityInfo;
         }
 
         private static string ConstructUrlForPopularitySearch(string placeId)
@@ -117,9 +133,13 @@ namespace PlacePopularity.Logic
             try
             {
                 var modifiedStr = response.Split(new String[] { @"/*""*/" }, StringSplitOptions.None)[0];
-                modifiedStr = modifiedStr.Replace(@"\n", "");
-                modifiedStr = modifiedStr.Replace("\\\"", "\"");
 
+                // replace newline and double newline
+                modifiedStr = modifiedStr.Replace(@"\\n", "");
+                modifiedStr = modifiedStr.Replace(@"\n", "");
+
+                // remove the unused escaping for a quote
+                modifiedStr = modifiedStr.Replace("\\\"", "\"");
                 modifiedStr = modifiedStr.Replace("\\\"", "\"");
 
                 modifiedStr = modifiedStr.Replace("\")]}'", "");
@@ -168,6 +188,61 @@ namespace PlacePopularity.Logic
             catch { return ""; }
         }
 
+        private static List<OpeningHour> GetDailyPopulartiy(JToken token, List<OpeningHour> openingHours)
+        {
+            try
+            {
+                var days = GetJsonValue<List<List<JToken>>>(token, new List<int> { 84, 0 });
+
+                foreach (var day in days)
+                {
+                    int dayAsInt = Convert.ToInt32(day[0]) % 7;
+
+                    string dayOfWeek = Enum.GetName(typeof(DayOfWeek), dayAsInt);
+
+                    OpeningHour tmp = openingHours.FirstOrDefault(d => d.DayOfWeek.Equals(dayOfWeek));
+
+                    if (tmp != null)
+                    {
+                        tmp.PopularityForHour = new List<PopularityPerHour>();
+
+                        var hours = GetJsonValue<List<JToken>>(token, new List<int> { 84, 0, dayAsInt, 1 });
+
+                        if (hours == null)
+                            continue;
+
+                        TimeSpan opening = tmp.OpensAt.TimeOfDay;
+                        TimeSpan closing = tmp.CloseingAt.TimeOfDay;
+
+                        foreach (var h in hours)
+                        {
+                            PopularityPerHour hourTmp = new PopularityPerHour();
+                            int hour, popularity;
+                            int.TryParse(h[0].ToString(), out hour);
+                            int.TryParse(h[1].ToString(), out popularity);
+
+                            hourTmp.Hour = hour;
+                            hourTmp.Popularity = popularity;
+
+                            TimeSpan currentHour = TimeSpan.FromHours(hour);
+
+                            if (opening.Hours <= currentHour.Hours && closing > currentHour)
+                            {
+                                tmp.PopularityForHour.Add(hourTmp);
+                            }
+                        }
+                    }
+                }
+
+                return openingHours;
+            }
+            catch (Exception e)
+            {
+                var msg = e.Message;
+                return null;
+            }
+        }
+
         private static List<OpeningHour> GetOpeningHours(JToken token)
         {
             try
@@ -197,6 +272,8 @@ namespace PlacePopularity.Logic
 
                     openingHours.Add(hour);
                 }
+
+                GetDailyPopulartiy(token, openingHours);
 
                 return openingHours;
             }

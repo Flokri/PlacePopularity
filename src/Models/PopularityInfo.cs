@@ -55,6 +55,8 @@ namespace PlacePopularity.Models
 
         public List<OpeningHour> OpeningHours { get; set; }
 
+        public List<PopularityForDay> DailyPopularity { get; set; }
+
         public bool IsOpen => CheckIfThePlaceIsOpen();
         #endregion
 
@@ -77,6 +79,18 @@ namespace PlacePopularity.Models
         public string DayOfWeek { get; set; }
         public DateTime OpensAt { get; set; }
         public DateTime CloseingAt { get; set; }
+        public List<PopularityPerHour> PopularityForHour { get; set; }
         #endregion
+    }
+
+    public class PopularityForDay
+    {
+        public string DayOfWeek { get; set; }
+        public List<PopularityPerHour> HourlyPopularity { get; set; }
+    }
+    public class PopularityPerHour
+    {
+        public int Hour { get; set; }
+        public int Popularity { get; set; }
     }
 }

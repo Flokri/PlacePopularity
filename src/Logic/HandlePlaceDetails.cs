@@ -118,7 +118,10 @@ namespace PlacePopularity.Logic
             {
                 var modifiedStr = response.Split(new String[] { @"/*""*/" }, StringSplitOptions.None)[0];
                 modifiedStr = modifiedStr.Replace(@"\n", "");
-                modifiedStr = modifiedStr.Replace(@"\", string.Empty);
+                modifiedStr = modifiedStr.Replace("\\\"", "\"");
+
+                modifiedStr = modifiedStr.Replace("\\\"", "\"");
+
                 modifiedStr = modifiedStr.Replace("\")]}'", "");
 
                 int index = modifiedStr.LastIndexOf("]");
@@ -128,7 +131,11 @@ namespace PlacePopularity.Logic
 
                 return JObject.Parse(modifiedStr);
             }
-            catch { return null; }
+            catch (Exception e)
+            {
+                string msg = e.Message;
+                return null;
+            }
         }
 
         private static T GetJsonValue<T>(JToken obj, List<int> indices)

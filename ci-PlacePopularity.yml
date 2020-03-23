@@ -1,0 +1,36 @@
+trigger:
+  branches:
+    include:
+      - master
+  
+  paths:
+    exclude:
+      - readme.md
+      - ci-customcontrols.yml
+      - cd-customcontrols.yml
+
+# a pull request on master should also trigger this build
+pr:
+  - master
+
+pool:
+  vmImage: 'windows-latest'
+  demands: msbuild
+
+steps:
+- task: NuGetToolInstaller@0
+  displayName: 'Use NuGet 4.9.3'
+  inputs:
+    versionSpec: 4.9.3
+
+- task: NuGetCommand@2
+  displayName: 'NuGet restore'
+  inputs:
+    restoreSolution: '/*.sln'
+
+- task: MSBuild@1
+  displayName: 'Build solution'
+  inputs:
+    solution: src/PlacePopularity.csproj
+    msbuildArguments: '/t:restore;build /p:PackageOutputPath=$(build.artifactstagingdirectory)'
+    clean: true

@@ -34,7 +34,7 @@ stages:
     - task: NuGetCommand@2
       displayName: 'NuGet restore'
       inputs:
-        restoreSolution: 'src\**\*.sln'
+        restoreSolution: '*.sln'
 
     - task: MSBuild@1
       displayName: 'Build beta'

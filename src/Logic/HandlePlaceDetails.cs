@@ -266,8 +266,21 @@ namespace PlacePopularity.Logic
                         var cleanTime = t[1].ToString().Replace("[", "").Replace("]", "").Replace("\"", "").Trim();
 
                         string[] times = cleanTime.Split(new String[] { "–" }, StringSplitOptions.None);
-                        hour.OpensAt = DateTime.Parse(times[0], CultureInfo.InvariantCulture);
-                        hour.CloseingAt = DateTime.Parse(times[1], CultureInfo.InvariantCulture);
+
+                        DateTime opening;
+                        DateTime.TryParse(times[0], out opening);
+                        hour.OpensAt = opening;
+
+                        if (!times[0].Equals("Closed"))
+                        {
+                            DateTime closing;
+                            DateTime.TryParse(times[1], out closing);
+                            hour.CloseingAt = closing;
+                        }
+                        else
+                        {
+                            hour.CloseingAt = DateTime.MinValue;
+                        }
                     }
 
                     openingHours.Add(hour);
@@ -277,7 +290,12 @@ namespace PlacePopularity.Logic
 
                 return openingHours;
             }
-            catch { return null; }
+            catch (Exception e)
+            {
+                var msg = e.Message;
+                Console.WriteLine(msg);
+                return null;
+            }
         }
         #endregion
 

@@ -51,27 +51,28 @@ namespace PlacePopularity.Controller
 
             try
             {
-                if (_lastRequest != null)
-                {
-                    if (LocationIsInsideFailureRadius(location))
-                    {
-                        if (_lastRequest?.Hour == DateTime.Now.Hour)
-                        {
-                            return SetOfNearbyPlaces;
-                        }
-                    }
-                    else
-                    {
-                        if (SetOfNearbyPlaces != null)
-                        {
-                            SetOfNearbyPlaces = LoadPlaces(location, radius, RefreshType.partlyNew);
-                        }
-                        else
-                        {
-                            SetOfNearbyPlaces = LoadPlaces(location, radius, RefreshType.complete);
-                        }
-                    }
-                }
+                // handle the last request in external code!
+                //if (_lastRequest != null)
+                //{
+                //    if (LocationIsInsideFailureRadius(location))
+                //    {
+                //        if (_lastRequest?.Hour == DateTime.Now.Hour)
+                //        {
+                //            return SetOfNearbyPlaces;
+                //        }
+                //    }
+                //    else
+                //    {
+                //        if (SetOfNearbyPlaces != null)
+                //        {
+                //            SetOfNearbyPlaces = LoadPlaces(location, radius, RefreshType.partlyNew);
+                //        }
+                //        else
+                //        {
+                //            SetOfNearbyPlaces = LoadPlaces(location, radius, RefreshType.complete);
+                //        }
+                //    }
+                //}
 
                 SetOfNearbyPlaces = LoadPlaces(location, radius, RefreshType.complete);
             }

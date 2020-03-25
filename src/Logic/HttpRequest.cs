@@ -44,6 +44,8 @@ namespace PlacePopularity.Logic
                 string password = "pass";
                 string encoded = System.Convert.ToBase64String(System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(username + ":" + password));
 
+                Console.WriteLine("LOGGING");
+
                 WebRequest request = WebRequest.Create(url);
                 request.Headers.Add("Authorization", "Basic " + encoded);
                 using (WebResponse response = request.GetResponse())
@@ -58,7 +60,12 @@ namespace PlacePopularity.Logic
                     }
                 }
             }
-            catch { return null; }
+            catch (Exception e)
+            {
+                var msg = e.Message;
+                Console.Write(msg);
+                return null;
+            }
         }
 
         public static string GetPopularityTimes(string placeUrl)

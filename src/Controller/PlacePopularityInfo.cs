@@ -71,14 +71,25 @@ namespace PlacePopularity.Controller
             switch (refreshType)
             {
                 case RefreshType.complete:
-                    return NearbyPlaces.GetNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.grocery_or_supermarket);
+                    SetOfNearbyPlaces = NearbyPlaces.GetNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.supermarket);
+                    break;
                 case RefreshType.update:
-                    return NearbyPlaces.UpdateNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.grocery_or_supermarket, SetOfNearbyPlaces);
+                    if (SetOfNearbyPlaces == null || SetOfNearbyPlaces.Count == 0)
+                        SetOfNearbyPlaces = NearbyPlaces.GetNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.supermarket);
+                    else
+                        SetOfNearbyPlaces = NearbyPlaces.UpdateNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.supermarket, SetOfNearbyPlaces);
+                    break;
                 case RefreshType.partlyNew:
-                    return NearbyPlaces.UpdateNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.grocery_or_supermarket, SetOfNearbyPlaces);
+                    if (SetOfNearbyPlaces == null || SetOfNearbyPlaces.Count == 0)
+                        SetOfNearbyPlaces = NearbyPlaces.GetNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.supermarket);
+                    else
+                        SetOfNearbyPlaces = NearbyPlaces.UpdateNearbyPlaces(_apiKey, location, radius, NearbyPlaces.PlaceType.supermarket, SetOfNearbyPlaces);
+                    break;
                 default:
                     return null;
             }
+
+            return SetOfNearbyPlaces;
         }
 
         private bool LocationIsInsideFailureRadius(Location location)

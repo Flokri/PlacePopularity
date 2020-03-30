@@ -24,7 +24,7 @@ namespace PlacePopularity.Controller
         #endregion
 
         #region enum
-        private enum RefreshType
+        public enum RefreshType
         {
             complete,
             update,
@@ -62,7 +62,7 @@ namespace PlacePopularity.Controller
 
         #region privates
 
-        private List<Place> LoadPlaces(Location location, int radius, RefreshType refreshType)
+        public List<Place> LoadPlaces(Location location, int radius, RefreshType refreshType)
         {
             _lastRequest = DateTime.Now;
             _lastLocation = location;
